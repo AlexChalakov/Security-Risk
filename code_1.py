@@ -4,6 +4,8 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms,modes
+
 # TASK 1
 def RepeatingXOREncrypt(key, string):
 	# YOUR IMPEMENTATION
@@ -56,6 +58,21 @@ def DHandEncrypt(A_Private_Key, B_Private_Key, PlainText):
 
     return a_derived_key, cipherText# You should return 2 variables, i.e., the derived key from Diffie-Hellman and ciphertext in this order.
 
+# TASK 3
+#https://www.highgo.ca/2019/08/08/the-difference-in-five-modes-in-the-aes-encryption-algorithm/
+#https://medium.com/asecuritysite-when-bob-met-alice/surely-no-one-uses-ecb-mode-in-aes-332ed90f29d0
+def AES_CTR_Encrypt(key, nonce_counter, data):
+    key = bytes.fromhex(key)
+    nonce_counter = bytes.fromhex(nonce_counter)
+
+    #changing the model to ECB here
+    aesCipher = Cipher(algorithms.AES(key), modes.ECB())
+    aesEncryptor = aesCipher.encryptor()
+
+    cipherText = aesEncryptor.update(data)
+    cipherText += aesEncryptor.finalize()
+
+    return cipherText
 
 
 if __name__ == "__main__":
@@ -64,11 +81,13 @@ if __name__ == "__main__":
     result = RepeatingXOREncrypt("01", "0123")
     print(result)
 
-#Test case
-#Input:
-#key = "01" (this is a string)		
-#string = "0123" (this is a string)
-#Output: 00000202 (this is a hex value returned as a string)
+    """
+    Test case
+    Input:
+    key = "01" (this is a string)		
+    string = "0123" (this is a string)
+    Output: 00000202 (this is a hex value returned as a string)
+    """
 
     # TASK 2
     A_PRIVATE_KEY = b'-----BEGIN PRIVATE KEY-----\nMIGcAgEAMFMGCSqGSIb3DQEDATBGAkEAlry2DwPC+pK/0QiOicVAtt6ANsfjmD9P\nQrDC6ZkYcrRf0q0RVzMDTnHWk1mRLVvb6av4HOSkIsk1mMogBcqV0wIBAgRCAkBm\nZK4qUqvU6WaPy4fNG9oWIXchxzztxmA7p9BFXbMzn3rHcW84SDwTWXAjkRd35XPV\n/9RAl06sv191BNFFPyg0\n-----END PRIVATE KEY-----\n'
@@ -81,15 +100,24 @@ if __name__ == "__main__":
     print(STD_KEY)
     print(STD_CIPHER)
 
-#Information on the type of variables:
-#* A_Private_Key and B_Private_Key are in PEM format
-#* Plaintext as bytes, e.g., b"this is a message"
-#* Both the returned shared key and cipher have to be in bytes 
+    """
+    Information on the type of variables:
+    * A_Private_Key and B_Private_Key are in PEM format
+    * Plaintext as bytes, e.g., b"this is a message"
+    * Both the returned shared key and cipher have to be in bytes 
 
-#Test case:
-#Using the above private keys and PlainText = b"Encrypt me with the derived key!" the output should be the following:
+    Test case:
+    Using the above private keys and PlainText = b"Encrypt me with the derived key!" the output should be the following:
 
-#Output:
-#You have to find the key by implementing DH, hence it can't be provide since it is part of the task's solution.
-#XORing the key you have found with PlainText = b"Encrypt me with the derived key!" will result in:
-#b'\xd8W\xd1\xfe\xb2\xb9_\x89\x90?O\tF\xde\xeb\xe1\xa1Gx\xb18\x1cY\x1e\xaf\xe0QmL\xf6\xeb\x0e'
+    Output:
+    You have to find the key by implementing DH, hence it can't be provide since it is part of the task's solution.
+    XORing the key you have found with PlainText = b"Encrypt me with the derived key!" will result in:
+    b'\xd8W\xd1\xfe\xb2\xb9_\x89\x90?O\tF\xde\xeb\xe1\xa1Gx\xb18\x1cY\x1e\xaf\xe0QmL\xf6\xeb\x0e'
+    """
+
+    # TASK 3
+    key ='0000000000000000000000000000000000000000000000000000000000000001'
+    nonce_counter = '00000000000000000000000000000001'
+    data = b"12345678901234567890123456789012"
+    result = AES_CTR_Encrypt(key, nonce_counter, data)
+    print(result)
