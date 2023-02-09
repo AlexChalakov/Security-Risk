@@ -44,6 +44,7 @@ def DHandEncrypt(A_Private_Key, B_Private_Key, PlainText):
     a_shared_key = a_private_key.exchange(b_public_key)
     b_shared_key = b_private_key.exchange(a_public_key)
 
+    # check since they have to be the same
     if a_shared_key != b_shared_key:
         raise Exception("Shared keys are not equal")
 
@@ -62,13 +63,20 @@ def DHandEncrypt(A_Private_Key, B_Private_Key, PlainText):
 #https://www.highgo.ca/2019/08/08/the-difference-in-five-modes-in-the-aes-encryption-algorithm/
 #https://medium.com/asecuritysite-when-bob-met-alice/surely-no-one-uses-ecb-mode-in-aes-332ed90f29d0
 def AES_CTR_Encrypt(key, nonce_counter, data):
+
     key = bytes.fromhex(key)
     nonce_counter = bytes.fromhex(nonce_counter)
+    intData = int.from_bytes(data, 'big')
+    print(intData)
 
     #changing the model to ECB here
     aesCipher = Cipher(algorithms.AES(key), modes.ECB())
     aesEncryptor = aesCipher.encryptor()
 
+    #floor division to find how many times you have to loop through
+
+    #loop through it the number of times
+    #for each convert it to int and then back to bytes and then add to nonce counter
     cipherText = aesEncryptor.update(data)
     cipherText += aesEncryptor.finalize()
 
