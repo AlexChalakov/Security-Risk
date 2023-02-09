@@ -1,8 +1,10 @@
 # YOUR IMPORTS
-import string
 import os
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.serialization import load_pem_private_key
+from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
+# TASK 1
 def RepeatingXOREncrypt(key, string):
 	# YOUR IMPEMENTATION
     # converting the string into bytes
@@ -23,14 +25,36 @@ def RepeatingXOREncrypt(key, string):
     # converting the bytes into a hex
     result = bytes(encoded).hex()
     
-    return result
-    # The result of XORing the string with the repeating key 
+    return result # The result of XORing the string with the repeating key 
 
+# TASK 2
 def DHandEncrypt(A_Private_Key, B_Private_Key, PlainText):
-#TODO
+    
+    # making my argument keys into an actual pem format
+    a_private_key = load_pem_private_key(A_Private_Key, password=None)
+    b_private_key = load_pem_private_key(B_Private_Key, password=None)
 
-    return # You should return 2 variables, i.e., the derived key from 
-    #Diffie-Hellman and ciphertext in this order.
+    # now that they are an actual format we can get the public key from them directly
+    a_public_key = a_private_key.public_key()
+    b_public_key = b_private_key.public_key()
+
+    # we exchange public keys so they can communicate and understand each other
+    a_shared_key = a_private_key.exchange(b_public_key)
+    b_shared_key = b_private_key.exchange(a_public_key)
+
+    if a_shared_key != b_shared_key:
+        raise Exception("Shared keys are not equal")
+
+    a_derived_key = HKDF(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=None,
+        info=b'handshake data'
+    ).derive(a_shared_key)
+
+    cipherText = bytes([b1 ^ b2 for b1,b2 in zip(PlainText, a_derived_key)])
+
+    return a_derived_key, cipherText# You should return 2 variables, i.e., the derived key from Diffie-Hellman and ciphertext in this order.
 
 
 
@@ -54,6 +78,8 @@ if __name__ == "__main__":
     PlainText = b"Encrypt me with the derived key!"
 	
     STD_KEY, STD_CIPHER = DHandEncrypt(A_PRIVATE_KEY, B_PRIVATE_KEY, PlainText)
+    print(STD_KEY)
+    print(STD_CIPHER)
 
 #Information on the type of variables:
 #* A_Private_Key and B_Private_Key are in PEM format
