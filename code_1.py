@@ -55,6 +55,7 @@ def DHandEncrypt(A_Private_Key, B_Private_Key, PlainText):
         info=b'handshake data'
     ).derive(a_shared_key)
 
+    # XOR Mechanism
     cipherText = bytes([b1 ^ b2 for b1,b2 in zip(PlainText, a_derived_key)])
 
     return a_derived_key, cipherText# You should return 2 variables, i.e., the derived key from Diffie-Hellman and ciphertext in this order.
@@ -66,21 +67,34 @@ def AES_CTR_Encrypt(key, nonce_counter, data):
 
     key = bytes.fromhex(key)
     nonce_counter = bytes.fromhex(nonce_counter)
-    intData = int.from_bytes(data, 'big')
-    print(intData)
+
+    # get the block size of ECB encryption - splits data into multiple blocks of this size
+    blockSize = algorithms.AES.block_size // 8
+    nonceBlock = nonce_counter.ljust(blockSize, b'\x00')
+    print(blockSize)
 
     #changing the model to ECB here
     aesCipher = Cipher(algorithms.AES(key), modes.ECB())
     aesEncryptor = aesCipher.encryptor()
 
+    blockCounter = 0
+    result = b''
+
     #floor division to find how many times you have to loop through
+    for i in range(0, len(data), blockSize):
+    
+        #separation of data
+        dataBlock = data[i:i + 16]
 
-    #loop through it the number of times
-    #for each convert it to int and then back to bytes and then add to nonce counter
-    cipherText = aesEncryptor.update(data)
-    cipherText += aesEncryptor.finalize()
+        #loop through it the number of times
+        #for each convert it to int and then back to bytes and then add to nonce counter
+        cipherText = aesEncryptor.update(nonceBlock)
+        nonceBlock = int.to_bytes(int.from_bytes(nonceBlock, 'big') + blockCounter, blockSize, 'big')
+        result += bytes(b ^ c for b,c in zip(dataBlock, cipherText))
 
-    return cipherText
+        blockCounter += 1
+
+    return result
 
 
 if __name__ == "__main__":
