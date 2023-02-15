@@ -1,4 +1,5 @@
 # YOUR IMPORTS
+from math import ceil
 import os
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
@@ -71,7 +72,6 @@ def AES_CTR_Encrypt(key, nonce_counter, data):
     # get the block size of ECB encryption - splits data into multiple blocks of this size
     blockSize = algorithms.AES.block_size // 8
     nonceBlock = nonce_counter.ljust(blockSize, b'\x00')
-    print(blockSize)
 
     #changing the model to ECB here
     aesCipher = Cipher(algorithms.AES(key), modes.ECB())
@@ -80,18 +80,25 @@ def AES_CTR_Encrypt(key, nonce_counter, data):
     blockCounter = 0
     result = b''
 
-    #floor division to find how many times you have to loop through
+    # divide the data into 16 bytes blocks
     for i in range(0, len(data), blockSize):
     
         #separation of data
         dataBlock = data[i:i + 16]
 
-        #loop through it the number of times
-        #for each convert it to int and then back to bytes and then add to nonce counter
+        #getting the right nonce block
+        #as we loop through it, we convert the block to int, 
+        #add the additional block size and counter, then transform it back to bytes
+        intBlock = int.from_bytes(nonceBlock, 'big')
+        nonceBlock = int.to_bytes(intBlock + blockCounter, blockSize, 'big')
+
+        #encrypting
         cipherText = aesEncryptor.update(nonceBlock)
-        nonceBlock = int.to_bytes(int.from_bytes(nonceBlock, 'big') + blockCounter, blockSize, 'big')
+
+        #XOR
         result += bytes(b ^ c for b,c in zip(dataBlock, cipherText))
 
+        #incrementing counter
         blockCounter += 1
 
     return result
