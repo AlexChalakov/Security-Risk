@@ -1,11 +1,10 @@
 # YOUR IMPORTS
-from math import ceil
 import os
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
-
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms,modes
+from cryptography.hazmat.primitives.padding import PKCS7
 
 # TASK 1
 def RepeatingXOREncrypt(key, string):
@@ -56,10 +55,24 @@ def DHandEncrypt(A_Private_Key, B_Private_Key, PlainText):
         info=b'handshake data'
     ).derive(a_shared_key)
 
+    # Edge cases
+    # FOR LONG STRINGS
+    # Repeating the key, so if the string is very long, 
+    # the key repeats continously until it gets to the size of the string
+
+    # FOR INTS LIKE 1
+    # 'len(PlainText) // len(a_derived_key))' gets evaluated to 0, so multiplied by 0 it becomes an error
+    # that's why we add 1 to it ensuring the key is at least as long as PlainText
+    a_derived_key = a_derived_key * ((len(PlainText) // len(a_derived_key)) + 1)
+    a_derived_key += a_derived_key[:len(PlainText) - len(a_derived_key)]
+
     # XOR Mechanism
     cipherText = bytes([b1 ^ b2 for b1,b2 in zip(PlainText, a_derived_key)])
 
-    return a_derived_key, cipherText# You should return 2 variables, i.e., the derived key from Diffie-Hellman and ciphertext in this order.
+    # Reversing the key
+    original_key = (a_derived_key * ((len(PlainText) // len(a_derived_key)) + 1))[:len(PlainText)]
+
+    return original_key, cipherText# You should return 2 variables, i.e., the derived key from Diffie-Hellman and ciphertext in this order.
 
 # TASK 3
 #https://www.highgo.ca/2019/08/08/the-difference-in-five-modes-in-the-aes-encryption-algorithm/
@@ -80,25 +93,34 @@ def AES_CTR_Encrypt(key, nonce_counter, data):
     blockCounter = 0
     result = b''
 
+    # Edge cases
+    # It would fail to deliver the correct outcome 
+    # if the length of data is not a multiple of the block size of 16 bytes
+    # so we add padding
+    #padder = PKCS7(blockSize * 8).padder()
+    #paddedData = padder.update(data) + padder.finalize()
+    #print(paddedData)
+
     # divide the data into 16 bytes blocks
     for i in range(0, len(data), blockSize):
     
-        #separation of data
+        # separation of data
         dataBlock = data[i:i + 16]
+        #print(len(dataBlock)) - all are 16
 
-        #getting the right nonce block
-        #as we loop through it, we convert the block to int, 
-        #add the additional block size and counter, then transform it back to bytes
+        # getting the right nonce block
+        # as we loop through it, we convert the block to int, 
+        # add the additional block size and counter, then transform it back to bytes
         intBlock = int.from_bytes(nonceBlock, 'big')
         nonceBlock = int.to_bytes(intBlock + blockCounter, blockSize, 'big')
 
-        #encrypting
+        # encrypting
         cipherText = aesEncryptor.update(nonceBlock)
 
-        #XOR
+        # XOR
         result += bytes(b ^ c for b,c in zip(dataBlock, cipherText))
 
-        #incrementing counter
+        # incrementing counter
         blockCounter += 1
 
     return result
@@ -108,7 +130,7 @@ if __name__ == "__main__":
 
     # TASK 1 
     result = RepeatingXOREncrypt("01", "0123")
-    print(result)
+    #print(result)
 
     """
     Test case
@@ -126,8 +148,8 @@ if __name__ == "__main__":
     PlainText = b"Encrypt me with the derived key!"
 	
     STD_KEY, STD_CIPHER = DHandEncrypt(A_PRIVATE_KEY, B_PRIVATE_KEY, PlainText)
-    print(STD_KEY)
-    print(STD_CIPHER)
+    #print(STD_KEY)
+    #print(STD_CIPHER)
 
     """
     Information on the type of variables:
@@ -145,8 +167,10 @@ if __name__ == "__main__":
     """
 
     # TASK 3
-    key ='0000000000000000000000000000000000000000000000000000000000000001'
-    nonce_counter = '00000000000000000000000000000001'
-    data = b"12345678901234567890123456789012"
+    key ='0000000000000000000000000000000000000000000000000000000000000002'
+    nonce_counter = '00000000000000000000000000000002'
+    #data = b"12345678901234567890123456789012"
+    #data = b"Hello world!"
+    data = b"123456789012345678901234567890121234567890123456789012345678901212345678901234567890123456789012"
     result = AES_CTR_Encrypt(key, nonce_counter, data)
     print(result)
